@@ -24,13 +24,14 @@
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
+using Oxide.Game.Rust.Cui;
 using System.Collections.Generic;
 using UnityEngine;
 using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("IceBox", "RFC1920", "0.0.2")]
+    [Info("IceBox", "RFC1920", "0.0.3")]
     [Description("Normal box that preserves food")]
     internal class IceBox : RustPlugin
     {
@@ -88,6 +89,7 @@ namespace Oxide.Plugins
                 foreach (ulong ib in ibuser.Value)
                 {
                     BaseNetworkable box = BaseNetworkable.serverEntities.Find(new NetworkableId(ib));
+                    DoLog($"Setting up previously deployed IceBox for id {box.net.ID.Value}");
                     box?.gameObject.GetOrAddComponent<IcyBox>();
                 }
             }
@@ -105,6 +107,7 @@ namespace Oxide.Plugins
                         IcyBox boxComp = box.GetComponent<IcyBox>();
                         if (boxComp != null)
                         {
+                            DoLog($"Removing IceBox component for id {box.net.ID.Value}");
                             UnityEngine.Object.DestroyImmediate(boxComp);
                         }
                     }
@@ -211,14 +214,59 @@ namespace Oxide.Plugins
                 {
                     ItemContainer boxContainer = box.GetComponent<ItemContainer>();
                     BoxStorage boxStorage = box.GetComponent<BoxStorage>();
-                    if (boxStorage != null)
-                    {
-                        // Of course, this does not work
-                        boxStorage.panelTitle = "IceBox";
-                    }
                 }
                 box.SendNetworkUpdateImmediate();
             }
+        }
+
+        private void OnLootEntity(BasePlayer player, BaseEntity entity)
+        {
+            if (!player.userID.IsSteamId()) return;
+            CuiHelper.DestroyUi(player, "custom.title.ui");
+            if (entity is StorageContainer container)
+            {
+                if (iceBoxes.ContainsKey(player.userID))
+                {
+                    if (iceBoxes[player.userID].Contains(container.net.ID.Value))
+                    {
+                        DoLog("Setting up title for IceBox");
+                        ShowContainerTitleUI(player, "- IceBox");
+                    }
+                }
+            }
+        }
+
+        private void OnLootEntityEnd(BasePlayer player, BaseCombatEntity entity)
+        {
+            if (!player.userID.IsSteamId()) return;
+            DoLog("Removing title for IceBox");
+            CuiHelper.DestroyUi(player, "custom.title.ui");
+        }
+
+        private void ShowContainerTitleUI(BasePlayer player, string title)
+        {
+            CuiElementContainer ui = new();
+            string panelName = "custom.title.ui";
+
+            ui.Add(new CuiElement
+            {
+                Name = panelName,
+                Parent = "Overlay",
+                Components =
+                {
+                    //new CuiRectTransformComponent { AnchorMin = "0.4 0.95", AnchorMax = "0.6 1.0" },
+                    new CuiRectTransformComponent { AnchorMin = "0.715 0.412", AnchorMax = "0.8 0.45" },
+                    new CuiTextComponent
+                    {
+                        Text = title,
+                        FontSize = 14,
+                        Align = TextAnchor.MiddleCenter,
+                        Color = "1 1 1 1"
+                    }
+                }
+            });
+
+            CuiHelper.AddUi(player, ui);
         }
 
         public class IcyBox : ContainerIOEntity, IFoodSpoilModifier
