@@ -1,4 +1,4 @@
-﻿#region License (GPL v2)
+#region License (GPL v2)
 /*
     IceBox - Make small storage boxes keep food like a fridge
     Copyright (c) RFC1920 <desolationoutpostpve@gmail.com>
@@ -30,7 +30,7 @@ using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("IceBox", "RFC1920", "0.0.1")]
+    [Info("IceBox", "RFC1920", "0.0.2")]
     [Description("Normal box that preserves food")]
     internal class IceBox : RustPlugin
     {
@@ -39,6 +39,35 @@ namespace Oxide.Plugins
         private const string effPrefab = "assets/prefabs/misc/xmas/ice throne/effects/pfx_icethrone.prefab";
         private Dictionary<string, bool> iceEnable = new();
         private Dictionary<ulong, List<ulong>> iceBoxes = new();
+        private bool newsave = false;
+
+        #region Message
+        private string Lang(string key, string id = null, params object[] args) => string.Format(lang.GetMessage(key, this, id), args);
+        private void Message(IPlayer player, string key, params object[] args) => player.Reply(Lang(key, player.Id, args));
+
+        private void DoLog(string message)
+        {
+            if (configData.Options.debug)
+            {
+                Interface.GetMod().LogInfo($"{Name}: {message}");
+            }
+        }
+        #endregion Message
+        protected override void LoadDefaultMessages()
+        {
+            lang.RegisterMessages(new Dictionary<string, string>
+            {
+                ["notenabled"] = "IceBox not enabled.",
+                ["isicebox"] = "This is an IceBox!",
+                ["isnoticebox"] = "This is NOT an IceBox!",
+                ["isnowicebox"] = "Box is now an IceBox!",
+                ["wasicebox"] = "IceBox removed!",
+                ["enabled"] = "IceBox enabled for 20 seconds.",
+                ["creatingice"] = "Creating IceBox."
+            }, this);
+        }
+
+        private void OnNewSave() => newsave = true;
 
         private void OnServerInitialized()
         {
@@ -47,6 +76,12 @@ namespace Oxide.Plugins
             AddCovalenceCommand("ib", "cmdIceBox");
             iceEnable.Clear();
             Instance = this;
+            if (newsave)
+            {
+                iceBoxes.Clear();
+                SaveData();
+                return;
+            }
 
             foreach (KeyValuePair<ulong, List<ulong>> ibuser in iceBoxes)
             {
@@ -101,10 +136,10 @@ namespace Oxide.Plugins
 
                                 if (ib != null)
                                 {
-                                    SendReply(player, "This is an IceBox!");
+                                    Message(iplayer, "isicebox");
                                     return;
                                 }
-                                SendReply(player, "This is NOT an IceBox!");
+                                Message(iplayer, "isnoticebox");
                             }
                         }
                         break;
@@ -117,7 +152,7 @@ namespace Oxide.Plugins
                                 box?.gameObject.GetOrAddComponent<IcyBox>();
                                 iceBoxes[player.userID].Add(box.net.ID.Value);
                                 SaveData();
-                                SendReply(iplayer.Object as BasePlayer, "Box is now an IceBox!");
+                                Message(iplayer, "isnowicebox");
                             }
                         }
                         break;
@@ -134,7 +169,7 @@ namespace Oxide.Plugins
                                 }
                                 iceBoxes[player.userID].Remove(box.net.ID.Value);
                                 SaveData();
-                                SendReply(iplayer.Object as BasePlayer, "IceBox removed!");
+                                Message(iplayer, "wasicebox");
                             }
                         }
                         break;
@@ -144,26 +179,7 @@ namespace Oxide.Plugins
 
             iceEnable.Add(iplayer.Id, true);
             timer.Once(20, () => { iceEnable.Remove(iplayer.Id); });
-            SendReply(iplayer.Object as BasePlayer, "IceBox enabled for 20 seconds.");
-        }
-
-        private object RaycastAll<T>(Ray ray) where T : BaseEntity
-        {
-            RaycastHit[] hits = Physics.RaycastAll(ray);
-            GamePhysics.Sort(hits);
-            const float distance = 6f;
-            object target = false;
-            foreach (RaycastHit hit in hits)
-            {
-                BaseEntity ent = hit.GetEntity();
-                if (ent is T && hit.distance < distance)
-                {
-                    target = ent;
-                    break;
-                }
-            }
-
-            return target;
+            Message(iplayer, "enabled");
         }
 
         private void OnEntityBuilt(Planner plan, GameObject go)
@@ -174,10 +190,10 @@ namespace Oxide.Plugins
                 BasePlayer pl = plan.GetOwnerPlayer();
                 if (!iceEnable.ContainsKey(pl?.UserIDString))
                 {
-                    SendReply(pl, "IceBox not enabled.");
+                    Message(pl.IPlayer, "notenabled");
                     return;
                 }
-                SendReply(pl, "Creating IceBox.");
+                Message(pl.IPlayer, "creatingice");
                 go.GetOrAddComponent<IcyBox>();
 
                 if (!iceBoxes.ContainsKey(pl.userID))
@@ -214,6 +230,25 @@ namespace Oxide.Plugins
             {
                 return PoweredFoodSpoilageRateMultiplier;
             }
+        }
+
+        private object RaycastAll<T>(Ray ray) where T : BaseEntity
+        {
+            RaycastHit[] hits = Physics.RaycastAll(ray);
+            GamePhysics.Sort(hits);
+            const float distance = 6f;
+            object target = false;
+            foreach (RaycastHit hit in hits)
+            {
+                BaseEntity ent = hit.GetEntity();
+                if (ent is T && hit.distance < distance)
+                {
+                    target = ent;
+                    break;
+                }
+            }
+
+            return target;
         }
 
         #region data

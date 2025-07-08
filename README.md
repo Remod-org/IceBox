@@ -3,7 +3,7 @@ Make small storage boxes keep food like a fridge
 
 ## Commands
 
-  - /ib  -- Use before deploying a small storage box so that when you deploy, it will be an IceBox
+  - /ib  -- Use before deploying a small storage box so that when you deploy, it will be an IceBox.  The timer runs for 20 seconds.
   - /ib check -- Check the box you are looking at for IceBox status
   - /ib add -- Make the box you are looking at an IceBox
   - /ib remove -- Remove IceBox component from the box you are looking at
