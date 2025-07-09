@@ -31,7 +31,7 @@ using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("IceBox", "RFC1920", "0.0.3")]
+    [Info("IceBox", "RFC1920", "0.0.4")]
     [Description("Normal box that preserves food")]
     internal class IceBox : RustPlugin
     {
@@ -210,19 +210,17 @@ namespace Oxide.Plugins
                 {
                     box.skinID = configData.Options.skinID > 0 ? configData.Options.skinID : 3336369277;
                 }
-                if (true)
-                {
-                    ItemContainer boxContainer = box.GetComponent<ItemContainer>();
-                    BoxStorage boxStorage = box.GetComponent<BoxStorage>();
-                }
                 box.SendNetworkUpdateImmediate();
             }
         }
 
         private void OnLootEntity(BasePlayer player, BaseEntity entity)
         {
+            if (!configData.Options.showui) return;
             if (!player.userID.IsSteamId()) return;
+
             CuiHelper.DestroyUi(player, "custom.title.ui");
+
             if (entity is StorageContainer container)
             {
                 if (iceBoxes.ContainsKey(player.userID))
@@ -321,6 +319,7 @@ namespace Oxide.Plugins
                 {
                     skinID = 3336369277,
                     reskin = true,
+                    showui = true,
                     debug = false
                 },
                 Version = Version
@@ -354,6 +353,9 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "Reskin IceBox")]
             public bool reskin;
+
+            [JsonProperty(PropertyName = "Show UI Overlay")]
+            public bool showui;
 
             public bool debug;
         }
