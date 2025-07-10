@@ -31,7 +31,7 @@ using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("IceBox", "RFC1920", "0.0.4")]
+    [Info("IceBox", "RFC1920", "0.0.5")]
     [Description("Normal box that preserves food")]
     internal class IceBox : RustPlugin
     {
@@ -133,7 +133,8 @@ namespace Oxide.Plugins
                         {
                             BaseEntity box = RaycastAll<BaseEntity>(player.eyes.HeadRay()) as BaseEntity;
                             if (box == null) return;
-                            if (box.ShortPrefabName.Equals("woodbox_deployed"))
+
+                            if (configData.Options.allowedStorage != null && configData.Options.allowedStorage.Contains(box?.ShortPrefabName))
                             {
                                 IcyBox ib = box?.gameObject.GetComponent<IcyBox>();
 
@@ -150,7 +151,7 @@ namespace Oxide.Plugins
                         {
                             BaseEntity box = RaycastAll<BaseEntity>(player.eyes.HeadRay()) as BaseEntity;
                             if (box == null) return;
-                            if (box.ShortPrefabName.Equals("woodbox_deployed"))
+                            if (configData.Options.allowedStorage != null && configData.Options.allowedStorage.Contains(box?.ShortPrefabName))
                             {
                                 box?.gameObject.GetOrAddComponent<IcyBox>();
                                 iceBoxes[player.userID].Add(box.net.ID.Value);
@@ -163,7 +164,7 @@ namespace Oxide.Plugins
                         {
                             BaseEntity box = RaycastAll<BaseEntity>(player.eyes.HeadRay()) as BaseEntity;
                             if (box == null) return;
-                            if (box.ShortPrefabName.Equals("woodbox_deployed"))
+                            if (configData.Options.allowedStorage != null && configData.Options.allowedStorage.Contains(box?.ShortPrefabName))
                             {
                                 IcyBox boxComp = box.GetComponent<IcyBox>();
                                 if (boxComp != null)
@@ -188,7 +189,8 @@ namespace Oxide.Plugins
         private void OnEntityBuilt(Planner plan, GameObject go)
         {
             BaseEntity box = go?.gameObject?.ToBaseEntity();
-            if (box?.ShortPrefabName == "woodbox_deployed")
+            //if (box?.ShortPrefabName == "woodbox_deployed")
+            if (configData.Options.allowedStorage != null && configData.Options.allowedStorage.Contains(box?.ShortPrefabName))
             {
                 BasePlayer pl = plan.GetOwnerPlayer();
                 if (!iceEnable.ContainsKey(pl?.UserIDString))
@@ -225,7 +227,7 @@ namespace Oxide.Plugins
             {
                 if (iceBoxes.ContainsKey(player.userID))
                 {
-                    if (iceBoxes[player.userID].Contains(container.net.ID.Value))
+                    if (iceBoxes[player.userID].Contains(container.net.ID.Value) && entity.ShortPrefabName == "woodbox_deployed")
                     {
                         DoLog("Setting up title for IceBox");
                         ShowContainerTitleUI(player, "- IceBox");
@@ -317,6 +319,7 @@ namespace Oxide.Plugins
             {
                 Options = new Options()
                 {
+                    allowedStorage = new List<string>() { "woodbox_deployed", "campfire" },
                     skinID = 3336369277,
                     reskin = true,
                     showui = true,
@@ -331,6 +334,7 @@ namespace Oxide.Plugins
         {
             configData = Config.ReadObject<ConfigData>();
 
+            configData.Options.allowedStorage ??= new List<string>() { "woodbox_deployed", "campfire" };
             configData.Version = Version;
             SaveConfig(configData);
         }
@@ -348,6 +352,9 @@ namespace Oxide.Plugins
 
         public class Options
         {
+            [JsonProperty(PropertyName = "List of allowed storage items")]
+            public List<string> allowedStorage;
+
             [JsonProperty(PropertyName = "IceBox Skin ID")]
             public uint skinID;
 

@@ -1,5 +1,5 @@
 # IceBox for Rust
-Make small storage boxes keep food like a fridge.  No electricity is required.
+Make small storage boxes keep food like a fridge.  No electricity is required.  Also now works for campfires.
 
 ## Commands
 
@@ -14,6 +14,10 @@ Make small storage boxes keep food like a fridge.  No electricity is required.
 ```json
 {
   "Options": {
+    "List of allowed storage items": [
+      "woodbox_deployed",
+      "campfire"
+    ],
     "IceBox Skin ID": 3336369277,
     "Reskin IceBox": true,
     "Show UI Overlay": true,
@@ -22,7 +26,7 @@ Make small storage boxes keep food like a fridge.  No electricity is required.
   "Version": {
     "Major": 0,
     "Minor": 0,
-    "Patch": 4
+    "Patch": 5
   }
 }
 ```
